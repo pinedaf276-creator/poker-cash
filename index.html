@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poker Cash Tracker</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0e3d26">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cash Tracker">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<style>
+  :root{
+    --bg-1:#08281a;
+    --bg-2:#0e3d26;
+    --panel:#0f3020;
+    --panel2:#154029;
+    --panel3:#1a4d31;
+    --border:#2c6b45;
+    --border-soft:#1f4e32;
+    --text:#f3ecd9;
+    --muted:#8fb89e;
+    --green:#4ade80;
+    --red:#f0554f;
+    --gold:#e0b93c;
+    --gold-dark:#b8952e;
+    --felt-line:rgba(224,185,60,0.08);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--text);
+    padding:24px;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse at top, var(--bg-2) 0%, var(--bg-1) 60%),
+      repeating-linear-gradient(45deg, transparent 0 38px, var(--felt-line) 38px 39px),
+      repeating-linear-gradient(-45deg, transparent 0 38px, var(--felt-line) 38px 39px);
+    background-attachment:fixed;
+  }
+  *{box-sizing:border-box;}
+  h1{font-size:23px;margin:0 0 4px;letter-spacing:.01em;
+     text-shadow:0 1px 0 rgba(0,0,0,.4);}
+  .subtitle{color:var(--muted);font-size:13px;margin-bottom:20px;}
+  .container{max-width:1020px;margin:0 auto;}
+  .header-bar{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    flex-wrap:wrap;gap:14px;margin-bottom:6px;
+  }
+  .header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .lang-select{
+    background:var(--panel2);
+    border:1px solid var(--gold-dark);
+    color:var(--text);
+    padding:8px 10px;
+    border-radius:7px;
+    font-size:13px;
+    font-weight:600;
+    width:auto;
+    min-width:120px;
+  }
+  .tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
+  .tab-btn{
+    background:var(--panel2);
+    border:1px solid var(--border-soft);
+    color:var(--muted);
+    padding:10px 18px;
+    border-radius:24px;
+    cursor:pointer;
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.01em;
+    transition:all .15s;
+  }
+  .tab-btn:hover{border-color:var(--gold-dark);color:var(--text);}
+  .tab-btn.active{
+    background:linear-gradient(180deg, var(--gold) 0%, var(--gold-dark) 100%);
+    color:#1a1405;
+    border-color:var(--gold);
+    box-shadow:0 2px 8px rgba(224,185,60,0.25);
+  }
+  .panel{
+    background:linear-gradient(180deg, var(--panel3) 0%, var(--panel) 100%);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:22px;
+    margin-bottom:16px;
+    display:none;
+    box-shadow:0 4px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.03);
+  }
+  .panel.active{display:block;}
+  label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
+  input,select{
+    background:#0c2818;
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:9px 10px;
+    border-radius:7px;
+    font-size:14px;
+    width:100%;
+  }
+  input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 2px rgba(224,185,60,0.18);}
+  .row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+  .row > div{flex:1;min-width:130px;}
+  button{
+    cursor:pointer;
+    border:none;
+    border-radius:7px;
+    font-size:13px;
+    font-weight:700;
+    padding:9px 16px;
+    transition:transform .1s, filter .1s;
+  }
+  button:active{transform:scale(0.97);}
+  .btn-primary{
+    background:linear-gradient(180deg, var(--gold) 0%, var(--gold-dark) 100%);
+    color:#1a1405;
+    box-shadow:0 2px 6px rgba(224,185,60,0.3);
+  }
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-secondary{background:var(--panel2);color:var(--text);border:1px solid var(--border);}
+  .btn-secondary:hover{border-color:var(--gold-dark);}
+  .btn-danger{background:transparent;color:var(--red);border:1px solid var(--red);padding:5px 10px;font-size:12px;}
+  .btn-danger:hover{background:rgba(240,85,79,0.12);}
+  .btn-small{padding:6px 11px;font-size:12px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--border-soft);}
+  th{color:var(--gold);font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;opacity:.85;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:rgba(224,185,60,0.03);}
+  .positive{color:var(--green);font-weight:700;}
+  .negative{color:var(--red);font-weight:700;}
+  .zero{color:var(--muted);font-weight:700;}
+  .players-entry{
+    background:#0c2818;
+    border:1px solid var(--border-soft);
+    border-radius:10px;
+    padding:14px;
+    margin-bottom:10px;
+    display:flex;
+    gap:14px;
+    align-items:flex-start;
+    flex-wrap:wrap;
+    position:relative;
+  }
+  .players-entry > div{flex:1;min-width:130px;}
+  .entry-buyins-col{min-width:220px;flex:1.4;}
+  .buyin-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;}
+  .buyin-line{display:flex;gap:6px;align-items:center;}
+  .buyin-line input{flex:1;}
+  .remove-buyin-btn{
+    background:transparent;color:var(--muted);border:1px solid var(--border-soft);
+    border-radius:6px;padding:6px 9px;font-size:12px;line-height:1;
+  }
+  .remove-buyin-btn:hover{color:var(--red);border-color:var(--red);}
+  .buyin-total-badge{color:var(--gold);font-weight:700;text-transform:none;letter-spacing:0;font-size:12px;margin-left:6px;}
+  .entry-net{font-size:14px;font-weight:700;min-width:90px;text-align:right;padding-top:22px;}
+  .empty-state{color:var(--muted);font-size:13px;padding:24px 0;text-align:center;}
+  .pill{
+    display:inline-block;
+    background:var(--panel2);
+    border:1px solid var(--gold-dark);
+    color:var(--gold);
+    padding:2px 10px;
+    border-radius:20px;
+    font-size:11px;
+    font-weight:700;
+    margin-right:4px;
+  }
+  .session-card{
+    background:#0c2818;
+    border:1px solid var(--border-soft);
+    border-radius:10px;
+    padding:14px 16px;
+    margin-bottom:12px;
+  }
+  .session-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .session-head .meta{font-size:14px;font-weight:700;}
+  .session-head .meta .sub{color:var(--muted);font-weight:400;margin-left:8px;font-size:12px;}
+  .top-actions{display:flex;justify-content:flex-end;gap:8px;margin-bottom:14px;}
+  .stat-cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;}
+  .stat-card{
+    background:#0c2818;
+    border:1px solid var(--border-soft);
+    border-radius:10px;
+    padding:14px 16px;
+    flex:1;
+    min-width:150px;
+    border-top:2px solid var(--gold-dark);
+  }
+  .stat-card .label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;}
+  .stat-card .value{font-size:21px;font-weight:800;color:var(--text);}
+  .bar-bg{background:var(--border-soft);border-radius:4px;height:6px;width:100%;overflow:hidden;margin-top:4px;}
+  .bar-fill{height:100%;border-radius:4px;}
+  .filter-row{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+  .filter-row > div{min-width:150px;}
+  .remove-row-btn{background:transparent;color:var(--red);border:none;font-size:18px;line-height:1;padding:22px 4px 4px;}
+  .toast{
+    position:fixed;bottom:20px;right:20px;
+    background:var(--panel3);border:1px solid var(--gold);
+    color:var(--text);padding:11px 18px;border-radius:8px;
+    font-size:13px;opacity:0;transform:translateY(10px);
+    transition:all .25s;pointer-events:none;
+    box-shadow:0 6px 18px rgba(0,0,0,.4);
+  }
+  .toast.show{opacity:1;transform:translateY(0);}
+  .file-input{display:none;}
+  select option{background:#0c2818;}
+  .buyin-detail{color:var(--muted);font-size:11.5px;margin-top:2px;}
+  h3.section-title{margin-top:26px;font-size:13px;color:var(--gold);text-transform:uppercase;letter-spacing:.04em;}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header-bar">
+    <div>
+      <h1 data-i18n="title">🃏 Registro de Partidas de Cash</h1>
+      <div class="subtitle" data-i18n="subtitle">Lleva el control de buy-ins, ganancias y estadísticas de tu grupo.</div>
+    </div>
+    <div class="header-actions">
+      <select id="langSelect" class="lang-select" onchange="applyLanguage(this.value)">
+        <option value="es">Español</option>
+        <option value="en">English</option>
+        <option value="ru">Русский</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="top-actions">
+    <button class="btn-secondary btn-small" data-i18n="exportBtn" onclick="exportData()">Exportar datos</button>
+    <button class="btn-secondary btn-small" data-i18n="importBtn" onclick="document.getElementById('importFile').click()">Importar datos</button>
+    <input type="file" id="importFile" class="file-input" accept="application/json" onchange="importData(event)">
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="nueva" data-i18n="tabNueva" onclick="switchTab('nueva')">Nueva Partida</button>
+    <button class="tab-btn" data-tab="historial" data-i18n="tabHistorial" onclick="switchTab('historial')">Historial</button>
+    <button class="tab-btn" data-tab="stats" data-i18n="tabStats" onclick="switchTab('stats')">Estadísticas</button>
+    <button class="tab-btn" data-tab="jugadores" data-i18n="tabJugadores" onclick="switchTab('jugadores')">Jugadores</button>
+  </div>
+
+  <!-- NUEVA PARTIDA -->
+  <div class="panel active" id="tab-nueva">
+    <div class="row">
+      <div>
+        <label data-i18n="labelDate">Fecha</label>
+        <input type="date" id="sessionDate">
+      </div>
+      <div>
+        <label data-i18n="labelBlinds">Blinds (ej. 1/2, 2/5)</label>
+        <input type="text" id="sessionBlinds" placeholder="1/2">
+      </div>
+      <div>
+        <label data-i18n="labelLocation">Ubicación / Notas (opcional)</label>
+        <input type="text" id="sessionLocation" placeholder="Casa de Juan">
+      </div>
+    </div>
+
+    <label style="margin-bottom:10px;" data-i18n="labelSessionPlayers">Jugadores de la partida</label>
+    <div id="entriesContainer"></div>
+    <button class="btn-secondary btn-small" data-i18n="addPlayerRow" onclick="addEntryRow()" style="margin-bottom:16px;">+ Agregar jugador</button>
+
+    <div>
+      <button class="btn-primary" data-i18n="saveSession" onclick="saveSession()">Guardar partida</button>
+    </div>
+  </div>
+
+  <!-- HISTORIAL -->
+  <div class="panel" id="tab-historial">
+    <div class="filter-row">
+      <div>
+        <label data-i18n="filterByPlayer">Filtrar por jugador</label>
+        <select id="filterPlayer" onchange="renderHistorial()"><option value="" data-i18n="all">Todos</option></select>
+      </div>
+      <div>
+        <label data-i18n="filterByBlinds">Filtrar por blinds</label>
+        <select id="filterBlinds" onchange="renderHistorial()"><option value="" data-i18n="all">Todos</option></select>
+      </div>
+    </div>
+    <div id="historialContainer"></div>
+  </div>
+
+  <!-- STATS -->
+  <div class="panel" id="tab-stats">
+    <div id="statCards" class="stat-cards"></div>
+    <table>
+      <thead>
+        <tr>
+          <th data-i18n="thPlayerName">Jugador</th>
+          <th data-i18n="thGames">Partidas</th>
+          <th data-i18n="thBuyinTotal">Buy-in total</th>
+          <th data-i18n="thCashoutTotal">Cash-out total</th>
+          <th data-i18n="thNetCol">Neto</th>
+          <th data-i18n="thAvg">Promedio/partida</th>
+          <th data-i18n="thWinRate">% ganadoras</th>
+          <th data-i18n="thRebuys">Recompras</th>
+          <th data-i18n="thBest">Mejor</th>
+          <th data-i18n="thWorst">Peor</th>
+        </tr>
+      </thead>
+      <tbody id="statsBody"></tbody>
+    </table>
+    <h3 class="section-title" data-i18n="blindsPerformance">Rendimiento por blinds</h3>
+    <table>
+      <thead>
+        <tr>
+          <th data-i18n="thBlinds">Blinds</th>
+          <th data-i18n="thBlindGames">Partidas</th>
+          <th data-i18n="thBlindNet">Neto total del grupo</th>
+          <th data-i18n="thBlindAvg">Promedio por partida</th>
+        </tr>
+      </thead>
+      <tbody id="blindsBody"></tbody>
+    </table>
+  </div>
+
+  <!-- JUGADORES -->
+  <div class="panel" id="tab-jugadores">
+    <div class="row">
+      <div>
+        <label data-i18n="labelPlayer">Jugador</label>
+        <input type="text" id="newPlayerName" data-i18n-placeholder="newPlayerPlaceholder" placeholder="Nombre">
+      </div>
+      <div style="flex:0 0 auto;align-self:flex-end;">
+        <button class="btn-primary" data-i18n="addPlayerBtn" onclick="addPlayer()">Agregar jugador</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th data-i18n="thPlayerName">Jugador</th><th data-i18n="thGamesPlayed">Partidas jugadas</th><th></th></tr></thead>
+      <tbody id="playersBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'pokerCashTrackerData';
+const LANG_KEY = 'pokerCashTrackerLang';
+
+/* ---------- i18n ---------- */
+const TRANSLATIONS = {
+  es: {
+    title:'🃏 Registro de Partidas de Cash',
+    subtitle:'Lleva el control de buy-ins, ganancias y estadísticas de tu grupo.',
+    exportBtn:'Exportar datos', importBtn:'Importar datos',
+    tabNueva:'Nueva Partida', tabHistorial:'Historial', tabStats:'Estadísticas', tabJugadores:'Jugadores',
+    labelDate:'Fecha', labelBlinds:'Blinds (ej. 1/2, 2/5)', labelLocation:'Ubicación / Notas (opcional)',
+    labelSessionPlayers:'Jugadores de la partida', addPlayerRow:'+ Agregar jugador', saveSession:'Guardar partida',
+    labelPlayer:'Jugador', labelBuyins:'Buy-ins (recompras)', addRebuy:'+ Recompra', labelCashout:'Cash-out',
+    filterByPlayer:'Filtrar por jugador', filterByBlinds:'Filtrar por blinds', all:'Todos',
+    emptyHistory:'No hay partidas registradas todavía.', deleteSession:'Eliminar partida',
+    totalBuyin:'Total buy-in', totalCashout:'Total cash-out', mismatch:'Descuadre',
+    statCardGames:'Partidas jugadas', statCardMoved:'Dinero movido (buy-ins)', statCardLeader:'Jugador líder', statCardActive:'Jugadores activos',
+    thPlayerName:'Jugador', thGames:'Partidas', thBuyinTotal:'Buy-in total', thCashoutTotal:'Cash-out total',
+    thNetCol:'Neto', thAvg:'Promedio/partida', thWinRate:'% ganadoras', thBest:'Mejor', thWorst:'Peor', thRebuys:'Recompras',
+    emptyStats:'Aún no hay estadísticas. Registra tu primera partida.',
+    blindsPerformance:'Rendimiento por blinds',
+    thBlinds:'Blinds', thBlindGames:'Partidas', thBlindNet:'Neto total del grupo', thBlindAvg:'Promedio por partida',
+    emptyBlinds:'Sin datos todavía.',
+    newPlayerPlaceholder:'Nombre', addPlayerBtn:'Agregar jugador', thGamesPlayed:'Partidas jugadas', deleteBtn:'Eliminar',
+    emptyPlayers:'Aún no hay jugadores. Agrega el primero arriba.',
+    toastNeedName:'Escribe un nombre', toastPlayerExists:'Ese jugador ya existe', toastPlayerAdded:'Jugador agregado',
+    toastNeedDate:'Selecciona una fecha', toastNeedBlinds:'Indica los blinds jugados', toastNeedPlayerRow:'Agrega al menos un jugador',
+    toastMissingPlayerSelect:'Falta seleccionar un jugador en alguna fila', toastDuplicatePlayer:'{name} está repetido en la partida',
+    toastSessionSaved:'Partida guardada', toastImportInvalid:'Archivo inválido', toastDataImported:'Datos importados',
+    confirmDeleteSession:'¿Eliminar esta partida? Esta acción no se puede deshacer.',
+    confirmDeletePlayer:'{name} tiene partidas registradas. Si lo eliminas de la lista, seguirá apareciendo en el historial pero no podrás seleccionarlo en partidas nuevas. ¿Eliminar de la lista de jugadores?',
+    confirmImport:'Esto reemplazará todos los datos actuales. ¿Continuar?',
+    noPlayersOption:'-- agrega jugadores primero --',
+    entriesWord:'entradas', entryWord:'entrada',
+  },
+  en: {
+    title:'🃏 Cash Game Tracker',
+    subtitle:'Track buy-ins, winnings, and stats for your group.',
+    exportBtn:'Export data', importBtn:'Import data',
+    tabNueva:'New Session', tabHistorial:'History', tabStats:'Stats', tabJugadores:'Players',
+    labelDate:'Date', labelBlinds:'Blinds (e.g. 1/2, 2/5)', labelLocation:'Location / Notes (optional)',
+    labelSessionPlayers:'Players in this session', addPlayerRow:'+ Add player', saveSession:'Save session',
+    labelPlayer:'Player', labelBuyins:'Buy-ins (rebuys)', addRebuy:'+ Rebuy', labelCashout:'Cash-out',
+    filterByPlayer:'Filter by player', filterByBlinds:'Filter by blinds', all:'All',
+    emptyHistory:'No sessions recorded yet.', deleteSession:'Delete session',
+    totalBuyin:'Total buy-in', totalCashout:'Total cash-out', mismatch:'Mismatch',
+    statCardGames:'Sessions played', statCardMoved:'Money moved (buy-ins)', statCardLeader:'Top player', statCardActive:'Active players',
+    thPlayerName:'Player', thGames:'Sessions', thBuyinTotal:'Total buy-in', thCashoutTotal:'Total cash-out',
+    thNetCol:'Net', thAvg:'Avg/session', thWinRate:'Win %', thBest:'Best', thWorst:'Worst', thRebuys:'Rebuys',
+    emptyStats:'No stats yet. Record your first session.',
+    blindsPerformance:'Performance by blinds',
+    thBlinds:'Blinds', thBlindGames:'Sessions', thBlindNet:'Group net total', thBlindAvg:'Avg per session',
+    emptyBlinds:'No data yet.',
+    newPlayerPlaceholder:'Name', addPlayerBtn:'Add player', thGamesPlayed:'Sessions played', deleteBtn:'Delete',
+    emptyPlayers:'No players yet. Add the first one above.',
+    toastNeedName:'Enter a name', toastPlayerExists:'That player already exists', toastPlayerAdded:'Player added',
+    toastNeedDate:'Select a date', toastNeedBlinds:'Enter the blinds played', toastNeedPlayerRow:'Add at least one player',
+    toastMissingPlayerSelect:'A row is missing a selected player', toastDuplicatePlayer:'{name} is already in this session',
+    toastSessionSaved:'Session saved', toastImportInvalid:'Invalid file', toastDataImported:'Data imported',
+    confirmDeleteSession:'Delete this session? This cannot be undone.',
+    confirmDeletePlayer:'{name} has recorded sessions. If removed from the list, they will still appear in history but cannot be selected in new sessions. Remove from player list?',
+    confirmImport:'This will replace all current data. Continue?',
+    noPlayersOption:'-- add players first --',
+    entriesWord:'entries', entryWord:'entry',
+  },
+  ru: {
+    title:'🃏 Учёт кэш-игр',
+    subtitle:'Отслеживайте бай-ины, выигрыши и статистику своей группы.',
+    exportBtn:'Экспорт данных', importBtn:'Импорт данных',
+    tabNueva:'Новая игра', tabHistorial:'История', tabStats:'Статистика', tabJugadores:'Игроки',
+    labelDate:'Дата', labelBlinds:'Блайнды (напр. 1/2, 2/5)', labelLocation:'Место / Заметки (необязательно)',
+    labelSessionPlayers:'Игроки в этой игре', addPlayerRow:'+ Добавить игрока', saveSession:'Сохранить игру',
+    labelPlayer:'Игрок', labelBuyins:'Бай-ины (докупки)', addRebuy:'+ Докупка', labelCashout:'Кэш-аут',
+    filterByPlayer:'Фильтр по игроку', filterByBlinds:'Фильтр по блайндам', all:'Все',
+    emptyHistory:'Пока нет сыгранных игр.', deleteSession:'Удалить игру',
+    totalBuyin:'Всего бай-инов', totalCashout:'Всего кэш-аут', mismatch:'Несовпадение',
+    statCardGames:'Сыграно игр', statCardMoved:'Оборот денег (бай-ины)', statCardLeader:'Лидер', statCardActive:'Активных игроков',
+    thPlayerName:'Игрок', thGames:'Игры', thBuyinTotal:'Всего бай-ин', thCashoutTotal:'Всего кэш-аут',
+    thNetCol:'Итог', thAvg:'В среднем/игра', thWinRate:'% побед', thBest:'Лучшая', thWorst:'Худшая', thRebuys:'Докупки',
+    emptyStats:'Статистики пока нет. Запишите первую игру.',
+    blindsPerformance:'Результаты по блайндам',
+    thBlinds:'Блайнды', thBlindGames:'Игры', thBlindNet:'Общий итог группы', thBlindAvg:'В среднем за игру',
+    emptyBlinds:'Данных пока нет.',
+    newPlayerPlaceholder:'Имя', addPlayerBtn:'Добавить игрока', thGamesPlayed:'Сыграно игр', deleteBtn:'Удалить',
+    emptyPlayers:'Пока нет игроков. Добавьте первого выше.',
+    toastNeedName:'Введите имя', toastPlayerExists:'Этот игрок уже существует', toastPlayerAdded:'Игрок добавлен',
+    toastNeedDate:'Выберите дату', toastNeedBlinds:'Укажите блайнды', toastNeedPlayerRow:'Добавьте хотя бы одного игрока',
+    toastMissingPlayerSelect:'В одной из строк не выбран игрок', toastDuplicatePlayer:'{name} уже добавлен в эту игру',
+    toastSessionSaved:'Игра сохранена', toastImportInvalid:'Неверный файл', toastDataImported:'Данные импортированы',
+    confirmDeleteSession:'Удалить эту игру? Это действие нельзя отменить.',
+    confirmDeletePlayer:'У {name} есть сыгранные игры. Если удалить его из списка, он останется в истории, но его нельзя будет выбрать в новых играх. Удалить из списка игроков?',
+    confirmImport:'Это заменит все текущие данные. Продолжить?',
+    noPlayersOption:'-- сначала добавьте игроков --',
+    entriesWord:'докупок', entryWord:'докупка',
+  }
+};
+
+let currentLang = (localStorage.getItem(LANG_KEY) && TRANSLATIONS[localStorage.getItem(LANG_KEY)]) ? localStorage.getItem(LANG_KEY) : 'es';
+
+function t(key, vars){
+  let str = (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) || TRANSLATIONS.es[key] || key;
+  if(vars){
+    Object.keys(vars).forEach(k=>{ str = str.replace('{'+k+'}', vars[k]); });
+  }
+  return str;
+}
+
+function applyLanguage(lang){
+  currentLang = TRANSLATIONS[lang] ? lang : 'es';
+  localStorage.setItem(LANG_KEY, currentLang);
+  document.documentElement.lang = currentLang;
+  document.getElementById('langSelect').value = currentLang;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    el.textContent = t(el.getAttribute('data-i18n'));
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{
+    el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+  });
+  document.title = t('title').replace(/^\S+\s*/,'');
+  renderPlayers();
+  refreshEntryPlayerOptions();
+  refreshFilterOptions();
+  renderHistorial();
+  renderStats();
+}
+
+/* ---------- DATA ---------- */
+
+let data = loadData();
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      migrateData(parsed);
+      return parsed;
+    }
+  }catch(e){}
+  return { players: [], sessions: [] };
+}
+
+// Backward compatibility: old sessions stored a single numeric buyIn per entry.
+// Convert them to a buyIns array so multiple money entries can be summed.
+function migrateData(d){
+  if(!d.sessions) return;
+  d.sessions.forEach(s=>{
+    (s.entries||[]).forEach(e=>{
+      if(!Array.isArray(e.buyIns)){
+        e.buyIns = (typeof e.buyIn === 'number') ? [e.buyIn] : [0];
+        delete e.buyIn;
+      }
+    });
+  });
+}
+
+function entryBuyInTotal(entry){
+  return (entry.buyIns||[]).reduce((a,v)=>a+(v||0),0);
+}
+
+function saveData(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function fmtMoney(n){
+  const sign = n < 0 ? '-' : '';
+  return sign + '$' + Math.abs(n).toLocaleString('es', {minimumFractionDigits:0, maximumFractionDigits:2});
+}
+
+function netClass(n){
+  if(n > 0) return 'positive';
+  if(n < 0) return 'negative';
+  return 'zero';
+}
+
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 1900);
+}
+
+function switchTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='historial') renderHistorial();
+  if(tab==='stats') renderStats();
+  if(tab==='jugadores') renderPlayers();
+  if(tab==='nueva') refreshEntryPlayerOptions();
+}
+
+/* ---------- PLAYERS ---------- */
+
+function addPlayer(){
+  const input = document.getElementById('newPlayerName');
+  const name = input.value.trim();
+  if(!name){ showToast(t('toastNeedName')); return; }
+  if(data.players.some(p=>p.toLowerCase()===name.toLowerCase())){ showToast(t('toastPlayerExists')); return; }
+  data.players.push(name);
+  saveData();
+  input.value='';
+  renderPlayers();
+  refreshEntryPlayerOptions();
+  refreshFilterOptions();
+  showToast(t('toastPlayerAdded'));
+}
+
+function deletePlayer(name){
+  const usedIn = data.sessions.some(s=>s.entries.some(e=>e.player===name));
+  if(usedIn){
+    if(!confirm(t('confirmDeletePlayer', {name}))) return;
+  }
+  data.players = data.players.filter(p=>p!==name);
+  saveData();
+  renderPlayers();
+  refreshEntryPlayerOptions();
+  refreshFilterOptions();
+}
+
+function renderPlayers(){
+  const tbody = document.getElementById('playersBody');
+  if(data.players.length===0){
+    tbody.innerHTML = `<tr><td colspan="3" class="empty-state">${t('emptyPlayers')}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.players.map(name=>{
+    const count = data.sessions.filter(s=>s.entries.some(e=>e.player===name)).length;
+    return `<tr>
+      <td>${escapeHtml(name)}</td>
+      <td>${count}</td>
+      <td style="text-align:right;"><button class="btn-danger" onclick="deletePlayer('${escapeAttr(name)}')">${t('deleteBtn')}</button></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ---------- NUEVA PARTIDA ---------- */
+
+function addEntryRow(playerName){
+  const container = document.getElementById('entriesContainer');
+  const row = document.createElement('div');
+  row.className = 'players-entry';
+  row.innerHTML = `
+    <div class="entry-player-col">
+      <label data-i18n="labelPlayer">${t('labelPlayer')}</label>
+      <select class="entry-player">${playerOptionsHtml(playerName)}</select>
+    </div>
+    <div class="entry-buyins-col">
+      <label data-i18n="labelBuyins">${t('labelBuyins')}</label><span class="buyin-total-badge">$0</span>
+      <div class="buyin-list">
+        <div class="buyin-line">
+          <input type="number" class="buyin-amount" value="0" min="0" step="any" oninput="updateEntryNet(this)">
+          <button type="button" class="remove-buyin-btn" onclick="removeBuyinLine(this)">✕</button>
+        </div>
+      </div>
+      <button type="button" class="btn-secondary btn-small" data-i18n="addRebuy" onclick="addBuyinLine(this)">${t('addRebuy')}</button>
+    </div>
+    <div class="entry-cashout-col">
+      <label data-i18n="labelCashout">${t('labelCashout')}</label>
+      <input type="number" class="entry-cashout" value="0" min="0" step="any" oninput="updateEntryNet(this)">
+    </div>
+    <div class="entry-net zero">$0</div>
+    <button class="remove-row-btn" onclick="this.parentElement.remove()" title="Quitar">✕</button>
+  `;
+  container.appendChild(row);
+}
+
+function addBuyinLine(btn){
+  const col = btn.closest('.entry-buyins-col');
+  const list = col.querySelector('.buyin-list');
+  const line = document.createElement('div');
+  line.className = 'buyin-line';
+  line.innerHTML = `
+    <input type="number" class="buyin-amount" value="0" min="0" step="any" oninput="updateEntryNet(this)">
+    <button type="button" class="remove-buyin-btn" onclick="removeBuyinLine(this)">✕</button>
+  `;
+  list.appendChild(line);
+  updateEntryNet(line.querySelector('.buyin-amount'));
+}
+
+function removeBuyinLine(btn){
+  const col = btn.closest('.entry-buyins-col');
+  const list = col.querySelector('.buyin-list');
+  const line = btn.closest('.buyin-line');
+  if(list.children.length > 1){
+    line.remove();
+  }else{
+    line.querySelector('.buyin-amount').value = 0;
+  }
+  updateEntryNet(col.querySelector('.buyin-amount'));
+}
+
+function playerOptionsHtml(selected){
+  if(data.players.length===0){
+    return `<option value="">${t('noPlayersOption')}</option>`;
+  }
+  return data.players.map(p=>`<option value="${escapeAttr(p)}" ${p===selected?'selected':''}>${escapeHtml(p)}</option>`).join('');
+}
+
+function refreshEntryPlayerOptions(){
+  document.querySelectorAll('#entriesContainer .entry-player').forEach(sel=>{
+    const current = sel.value;
+    sel.innerHTML = playerOptionsHtml(current);
+  });
+  if(document.getElementById('entriesContainer').children.length===0 && data.players.length>0){
+    addEntryRow();
+  }
+  const dateInput = document.getElementById('sessionDate');
+  if(!dateInput.value){
+    dateInput.value = new Date().toISOString().slice(0,10);
+  }
+}
+
+function updateEntryNet(el){
+  const row = el.closest('.players-entry');
+  const buyinInputs = Array.from(row.querySelectorAll('.buyin-amount'));
+  const totalBuyIn = buyinInputs.reduce((a,i)=>a+(parseFloat(i.value)||0),0);
+  const cashout = parseFloat(row.querySelector('.entry-cashout').value) || 0;
+  const net = cashout - totalBuyIn;
+
+  row.querySelector('.buyin-total-badge').textContent = fmtMoney(totalBuyIn);
+  const netEl = row.querySelector('.entry-net');
+  netEl.textContent = fmtMoney(net);
+  netEl.className = 'entry-net ' + netClass(net);
+}
+
+function saveSession(){
+  const date = document.getElementById('sessionDate').value;
+  const blinds = document.getElementById('sessionBlinds').value.trim();
+  const location = document.getElementById('sessionLocation').value.trim();
+
+  if(!date){ showToast(t('toastNeedDate')); return; }
+  if(!blinds){ showToast(t('toastNeedBlinds')); return; }
+
+  const rows = Array.from(document.querySelectorAll('#entriesContainer .players-entry'));
+  if(rows.length===0){ showToast(t('toastNeedPlayerRow')); return; }
+
+  const entries = [];
+  const seenPlayers = new Set();
+  for(const row of rows){
+    const player = row.querySelector('.entry-player').value;
+    const buyIns = Array.from(row.querySelectorAll('.buyin-amount')).map(i=>parseFloat(i.value)||0);
+    const cashOut = parseFloat(row.querySelector('.entry-cashout').value) || 0;
+    if(!player){ showToast(t('toastMissingPlayerSelect')); return; }
+    if(seenPlayers.has(player)){ showToast(t('toastDuplicatePlayer', {name:player})); return; }
+    seenPlayers.add(player);
+    entries.push({ player, buyIns, cashOut });
+  }
+
+  data.sessions.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+    date, blinds, location, entries
+  });
+  saveData();
+  showToast(t('toastSessionSaved'));
+
+  document.getElementById('sessionBlinds').value='';
+  document.getElementById('sessionLocation').value='';
+  document.getElementById('entriesContainer').innerHTML='';
+  addEntryRow();
+  refreshFilterOptions();
+}
+
+/* ---------- HISTORIAL ---------- */
+
+function refreshFilterOptions(){
+  const playerSel = document.getElementById('filterPlayer');
+  const blindsSel = document.getElementById('filterBlinds');
+  const currentPlayer = playerSel.value;
+  const currentBlinds = blindsSel.value;
+
+  playerSel.innerHTML = `<option value="">${t('all')}</option>` + data.players.map(p=>`<option value="${escapeAttr(p)}">${escapeHtml(p)}</option>`).join('');
+  const blindsSet = [...new Set(data.sessions.map(s=>s.blinds))].sort();
+  blindsSel.innerHTML = `<option value="">${t('all')}</option>` + blindsSet.map(b=>`<option value="${escapeAttr(b)}">${escapeHtml(b)}</option>`).join('');
+
+  playerSel.value = currentPlayer;
+  blindsSel.value = currentBlinds;
+}
+
+function renderHistorial(){
+  const container = document.getElementById('historialContainer');
+  const filterPlayer = document.getElementById('filterPlayer').value;
+  const filterBlinds = document.getElementById('filterBlinds').value;
+
+  let sessions = [...data.sessions].sort((a,b)=> b.date.localeCompare(a.date));
+  if(filterPlayer) sessions = sessions.filter(s=>s.entries.some(e=>e.player===filterPlayer));
+  if(filterBlinds) sessions = sessions.filter(s=>s.blinds===filterBlinds);
+
+  if(sessions.length===0){
+    container.innerHTML = `<div class="empty-state">${t('emptyHistory')}</div>`;
+    return;
+  }
+
+  container.innerHTML = sessions.map(s=>{
+    const totalBuyIn = s.entries.reduce((a,e)=>a+entryBuyInTotal(e),0);
+    const totalCashOut = s.entries.reduce((a,e)=>a+e.cashOut,0);
+    const rowsHtml = s.entries.map(e=>{
+      const buyInTotal = entryBuyInTotal(e);
+      const net = e.cashOut - buyInTotal;
+      const buyIns = e.buyIns||[];
+      const detail = buyIns.length > 1 ? `<div class="buyin-detail">${buyIns.map(v=>fmtMoney(v)).join(' + ')} (${buyIns.length} ${t('entriesWord')})</div>` : '';
+      return `<tr>
+        <td>${escapeHtml(e.player)}</td>
+        <td>${fmtMoney(buyInTotal)}${detail}</td>
+        <td>${fmtMoney(e.cashOut)}</td>
+        <td class="${netClass(net)}">${fmtMoney(net)}</td>
+      </tr>`;
+    }).join('');
+    return `<div class="session-card">
+      <div class="session-head">
+        <div class="meta">${formatDate(s.date)} <span class="pill">${escapeHtml(s.blinds)}</span>${s.location?`<span class="sub">${escapeHtml(s.location)}</span>`:''}</div>
+        <button class="btn-danger" onclick="deleteSession('${s.id}')">${t('deleteSession')}</button>
+      </div>
+      <table>
+        <thead><tr><th>${t('labelPlayer')}</th><th>${t('totalBuyin')}</th><th>${t('labelCashout')}</th><th>${t('thNetCol')}</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+      <div style="text-align:right;color:var(--muted);font-size:12px;margin-top:6px;">
+        ${t('totalBuyin')}: ${fmtMoney(totalBuyIn)} · ${t('totalCashout')}: ${fmtMoney(totalCashOut)}
+        ${Math.abs(totalBuyIn-totalCashOut) > 0.01 ? ` · <span class="negative">${t('mismatch')}: ${fmtMoney(totalCashOut-totalBuyIn)}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function deleteSession(id){
+  if(!confirm(t('confirmDeleteSession'))) return;
+  data.sessions = data.sessions.filter(s=>s.id!==id);
+  saveData();
+  renderHistorial();
+  refreshFilterOptions();
+}
+
+/* ---------- STATS ---------- */
+
+function renderStats(){
+  const perPlayer = {};
+  data.players.forEach(p=> perPlayer[p] = { games:0, buyIn:0, cashOut:0, net:0, wins:0, best:null, worst:null, rebuys:0 });
+
+  data.sessions.forEach(s=>{
+    s.entries.forEach(e=>{
+      if(!perPlayer[e.player]) perPlayer[e.player] = { games:0, buyIn:0, cashOut:0, net:0, wins:0, best:null, worst:null, rebuys:0 };
+      const st = perPlayer[e.player];
+      const buyInTotal = entryBuyInTotal(e);
+      const net = e.cashOut - buyInTotal;
+      st.games++;
+      st.buyIn += buyInTotal;
+      st.cashOut += e.cashOut;
+      st.net += net;
+      st.rebuys += Math.max(0, (e.buyIns||[]).length - 1);
+      if(net > 0) st.wins++;
+      if(st.best===null || net > st.best) st.best = net;
+      if(st.worst===null || net < st.worst) st.worst = net;
+    });
+  });
+
+  const names = Object.keys(perPlayer).filter(n=>perPlayer[n].games>0 || data.players.includes(n));
+  names.sort((a,b)=> perPlayer[b].net - perPlayer[a].net);
+
+  const totalSessions = data.sessions.length;
+  const totalMoved = data.sessions.reduce((a,s)=>a + s.entries.reduce((x,e)=>x+entryBuyInTotal(e),0), 0);
+  let topPlayer = names.length ? names[0] : null;
+  const cards = document.getElementById('statCards');
+  cards.innerHTML = `
+    <div class="stat-card"><div class="label">${t('statCardGames')}</div><div class="value">${totalSessions}</div></div>
+    <div class="stat-card"><div class="label">${t('statCardMoved')}</div><div class="value">${fmtMoney(totalMoved)}</div></div>
+    <div class="stat-card"><div class="label">${t('statCardLeader')}</div><div class="value">${topPlayer ? escapeHtml(topPlayer) : '—'}</div></div>
+    <div class="stat-card"><div class="label">${t('statCardActive')}</div><div class="value">${names.filter(n=>perPlayer[n].games>0).length}</div></div>
+  `;
+
+  const maxAbsNet = Math.max(1, ...names.map(n=>Math.abs(perPlayer[n].net)));
+
+  document.getElementById('statsBody').innerHTML = names.length ? names.map(n=>{
+    const st = perPlayer[n];
+    const avg = st.games ? st.net/st.games : 0;
+    const winRate = st.games ? Math.round((st.wins/st.games)*100) : 0;
+    const barPct = Math.min(100, Math.round((Math.abs(st.net)/maxAbsNet)*100));
+    return `<tr>
+      <td>${escapeHtml(n)}</td>
+      <td>${st.games}</td>
+      <td>${fmtMoney(st.buyIn)}</td>
+      <td>${fmtMoney(st.cashOut)}</td>
+      <td class="${netClass(st.net)}">${fmtMoney(st.net)}
+        <div class="bar-bg"><div class="bar-fill" style="width:${barPct}%;background:${st.net>=0?'var(--green)':'var(--red)'};"></div></div>
+      </td>
+      <td>${fmtMoney(avg)}</td>
+      <td>${st.games ? winRate+'%' : '—'}</td>
+      <td>${st.rebuys}</td>
+      <td class="positive">${st.best!==null ? fmtMoney(st.best) : '—'}</td>
+      <td class="negative">${st.worst!==null ? fmtMoney(st.worst) : '—'}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="10" class="empty-state">${t('emptyStats')}</td></tr>`;
+
+  const perBlind = {};
+  data.sessions.forEach(s=>{
+    if(!perBlind[s.blinds]) perBlind[s.blinds] = { games:0, net:0 };
+    const totalBuyIn = s.entries.reduce((a,e)=>a+entryBuyInTotal(e),0);
+    const totalCashOut = s.entries.reduce((a,e)=>a+e.cashOut,0);
+    perBlind[s.blinds].games++;
+    perBlind[s.blinds].net += (totalCashOut - totalBuyIn);
+  });
+  const blindNames = Object.keys(perBlind).sort();
+  document.getElementById('blindsBody').innerHTML = blindNames.length ? blindNames.map(b=>{
+    const st = perBlind[b];
+    const avg = st.games ? st.net/st.games : 0;
+    return `<tr>
+      <td><span class="pill">${escapeHtml(b)}</span></td>
+      <td>${st.games}</td>
+      <td class="${netClass(st.net)}">${fmtMoney(st.net)}</td>
+      <td>${fmtMoney(avg)}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="4" class="empty-state">${t('emptyBlinds')}</td></tr>`;
+}
+
+/* ---------- IMPORT / EXPORT ---------- */
+
+function exportData(){
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `poker-cash-tracker-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const imported = JSON.parse(e.target.result);
+      if(!imported.players || !imported.sessions) throw new Error('formato inválido');
+      migrateData(imported);
+      if(confirm(t('confirmImport'))){
+        data = imported;
+        saveData();
+        renderPlayers();
+        refreshEntryPlayerOptions();
+        refreshFilterOptions();
+        renderHistorial();
+        renderStats();
+        showToast(t('toastDataImported'));
+      }
+    }catch(err){
+      showToast(t('toastImportInvalid'));
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+/* ---------- UTILS ---------- */
+
+function formatDate(iso){
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(str){
+  return escapeHtml(str);
+}
+
+/* ---------- INIT ---------- */
+
+document.getElementById('langSelect').value = currentLang;
+applyLanguage(currentLang);
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>

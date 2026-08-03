@@ -218,6 +218,22 @@
   select option{background:#0c2818;}
   .buyin-detail{color:var(--muted);font-size:11.5px;margin-top:2px;}
   h3.section-title{margin-top:26px;font-size:13px;color:var(--gold);text-transform:uppercase;letter-spacing:.04em;}
+  .table-total-bar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:linear-gradient(180deg, #16442a 0%, #0f3020 100%);
+    border:1px solid var(--gold-dark);
+    border-radius:10px;
+    padding:12px 16px;
+    margin-bottom:16px;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    font-weight:700;
+    color:var(--muted);
+  }
+  .table-total-value{font-size:22px;color:var(--gold);letter-spacing:0;text-transform:none;font-weight:800;}
 </style>
 </head>
 <body>
@@ -270,6 +286,11 @@
     <div id="entriesContainer"></div>
     <button class="btn-secondary btn-small" data-i18n="addPlayerRow" onclick="addEntryRow()" style="margin-bottom:16px;">+ Agregar jugador</button>
 
+    <div class="table-total-bar">
+      <span data-i18n="labelTableTotal">Total en la mesa</span>
+      <span id="tableTotalValue" class="table-total-value">$0</span>
+    </div>
+
     <div>
       <button class="btn-primary" data-i18n="saveSession" onclick="saveSession()">Guardar partida</button>
     </div>
@@ -321,6 +342,19 @@
         </tr>
       </thead>
       <tbody id="blindsBody"></tbody>
+    </table>
+
+    <h3 class="section-title" data-i18n="tableMoneyTitle">Dinero en la mesa por partida</h3>
+    <table>
+      <thead>
+        <tr>
+          <th data-i18n="thDate">Fecha</th>
+          <th data-i18n="thBlinds">Blinds</th>
+          <th data-i18n="thPlayersCount">Jugadores</th>
+          <th data-i18n="thTableTotal">Total en mesa</th>
+        </tr>
+      </thead>
+      <tbody id="tableMoneyBody"></tbody>
     </table>
   </div>
 
@@ -379,6 +413,10 @@ const TRANSLATIONS = {
     confirmImport:'Esto reemplazará todos los datos actuales. ¿Continuar?',
     noPlayersOption:'-- agrega jugadores primero --',
     entriesWord:'entradas', entryWord:'entrada',
+    labelTableTotal:'Total en la mesa',
+    statCardAvgTable:'Promedio en mesa por partida',
+    tableMoneyTitle:'Dinero en la mesa por partida',
+    thDate:'Fecha', thPlayersCount:'Jugadores', thTableTotal:'Total en mesa',
   },
   en: {
     title:'🃏 Cash Game Tracker',
@@ -409,6 +447,10 @@ const TRANSLATIONS = {
     confirmImport:'This will replace all current data. Continue?',
     noPlayersOption:'-- add players first --',
     entriesWord:'entries', entryWord:'entry',
+    labelTableTotal:'Table total',
+    statCardAvgTable:'Avg money in play per session',
+    tableMoneyTitle:'Money in play by session',
+    thDate:'Date', thPlayersCount:'Players', thTableTotal:'Table total',
   },
   ru: {
     title:'🃏 Учёт кэш-игр',
@@ -439,6 +481,10 @@ const TRANSLATIONS = {
     confirmImport:'Это заменит все текущие данные. Продолжить?',
     noPlayersOption:'-- сначала добавьте игроков --',
     entriesWord:'докупок', entryWord:'докупка',
+    labelTableTotal:'Всего за столом',
+    statCardAvgTable:'Средний оборот за игру',
+    tableMoneyTitle:'Деньги в игре по партиям',
+    thDate:'Дата', thPlayersCount:'Игроков', thTableTotal:'Итог за столом',
   }
 };
 
@@ -607,9 +653,15 @@ function addEntryRow(playerName){
       <input type="number" class="entry-cashout" value="0" min="0" step="any" oninput="updateEntryNet(this)">
     </div>
     <div class="entry-net zero">$0</div>
-    <button class="remove-row-btn" onclick="this.parentElement.remove()" title="Quitar">✕</button>
+    <button class="remove-row-btn" onclick="removeEntryRow(this)" title="Quitar">✕</button>
   `;
   container.appendChild(row);
+  updateTableTotal();
+}
+
+function removeEntryRow(btn){
+  btn.closest('.players-entry').remove();
+  updateTableTotal();
 }
 
 function addBuyinLine(btn){
@@ -656,6 +708,7 @@ function refreshEntryPlayerOptions(){
   if(!dateInput.value){
     dateInput.value = new Date().toISOString().slice(0,10);
   }
+  updateTableTotal();
 }
 
 function updateEntryNet(el){
@@ -669,6 +722,16 @@ function updateEntryNet(el){
   const netEl = row.querySelector('.entry-net');
   netEl.textContent = fmtMoney(net);
   netEl.className = 'entry-net ' + netClass(net);
+
+  updateTableTotal();
+}
+
+function updateTableTotal(){
+  const el = document.getElementById('tableTotalValue');
+  if(!el) return;
+  const buyinInputs = document.querySelectorAll('#entriesContainer .buyin-amount');
+  const total = Array.from(buyinInputs).reduce((a,i)=>a+(parseFloat(i.value)||0),0);
+  el.textContent = fmtMoney(total);
 }
 
 function saveSession(){
@@ -806,11 +869,13 @@ function renderStats(){
 
   const totalSessions = data.sessions.length;
   const totalMoved = data.sessions.reduce((a,s)=>a + s.entries.reduce((x,e)=>x+entryBuyInTotal(e),0), 0);
+  const avgTable = totalSessions ? totalMoved/totalSessions : 0;
   let topPlayer = names.length ? names[0] : null;
   const cards = document.getElementById('statCards');
   cards.innerHTML = `
     <div class="stat-card"><div class="label">${t('statCardGames')}</div><div class="value">${totalSessions}</div></div>
     <div class="stat-card"><div class="label">${t('statCardMoved')}</div><div class="value">${fmtMoney(totalMoved)}</div></div>
+    <div class="stat-card"><div class="label">${t('statCardAvgTable')}</div><div class="value">${fmtMoney(avgTable)}</div></div>
     <div class="stat-card"><div class="label">${t('statCardLeader')}</div><div class="value">${topPlayer ? escapeHtml(topPlayer) : '—'}</div></div>
     <div class="stat-card"><div class="label">${t('statCardActive')}</div><div class="value">${names.filter(n=>perPlayer[n].games>0).length}</div></div>
   `;
@@ -855,6 +920,17 @@ function renderStats(){
       <td>${st.games}</td>
       <td class="${netClass(st.net)}">${fmtMoney(st.net)}</td>
       <td>${fmtMoney(avg)}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="4" class="empty-state">${t('emptyBlinds')}</td></tr>`;
+
+  const sessionsSorted = [...data.sessions].sort((a,b)=> b.date.localeCompare(a.date));
+  document.getElementById('tableMoneyBody').innerHTML = sessionsSorted.length ? sessionsSorted.map(s=>{
+    const totalBuyIn = s.entries.reduce((a,e)=>a+entryBuyInTotal(e),0);
+    return `<tr>
+      <td>${formatDate(s.date)}</td>
+      <td><span class="pill">${escapeHtml(s.blinds)}</span></td>
+      <td>${s.entries.length}</td>
+      <td>${fmtMoney(totalBuyIn)}</td>
     </tr>`;
   }).join('') : `<tr><td colspan="4" class="empty-state">${t('emptyBlinds')}</td></tr>`;
 }

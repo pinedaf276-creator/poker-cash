@@ -234,6 +234,68 @@
     color:var(--muted);
   }
   .table-total-value{font-size:22px;color:var(--gold);letter-spacing:0;text-transform:none;font-weight:800;}
+
+  .control-chip{display:flex;flex-direction:column;gap:3px;}
+  .control-chip label{margin-bottom:0;font-size:10px;}
+  .control-chip .lang-select{min-width:110px;padding:7px 9px;font-size:12px;}
+
+  /* Confirm modal */
+  .modal-overlay{
+    position:fixed;inset:0;
+    background:rgba(4,15,9,0.72);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:1000;
+    padding:20px;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal-box{
+    background:linear-gradient(180deg, var(--panel3) 0%, var(--panel) 100%);
+    border:1px solid var(--gold-dark);
+    border-radius:14px;
+    padding:22px;
+    max-width:380px;
+    width:100%;
+    box-shadow:0 16px 44px rgba(0,0,0,.55);
+  }
+  .modal-message{font-size:14px;line-height:1.55;margin-bottom:20px;color:var(--text);}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;}
+  .btn-danger-solid{background:linear-gradient(180deg, #ee6b64 0%, var(--red) 100%);color:#2a0806;}
+  .btn-danger-solid:hover{filter:brightness(1.08);}
+
+  /* Avatars */
+  .avatar{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:24px;height:24px;
+    border-radius:50%;
+    font-size:10.5px;
+    font-weight:800;
+    color:#fff;
+    margin-right:8px;
+    vertical-align:middle;
+    box-shadow:0 0 0 1px rgba(224,185,60,0.35);
+    flex-shrink:0;
+  }
+
+  /* Podium */
+  .podium-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;}
+  .podium-card{
+    flex:1;min-width:150px;
+    background:#0c2818;
+    border-radius:10px;
+    padding:14px 16px;
+    text-align:center;
+    border:1px solid var(--border-soft);
+  }
+  .podium-card.rank-1{border-color:#e0b93c;box-shadow:0 0 0 1px rgba(224,185,60,0.25), 0 4px 14px rgba(224,185,60,0.12);order:2;}
+  .podium-card.rank-2{border-color:#b9c1c9;order:1;margin-top:14px;}
+  .podium-card.rank-3{border-color:#c17a4b;order:3;margin-top:22px;}
+  .podium-medal{font-size:26px;margin-bottom:4px;}
+  .podium-name{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;justify-content:center;}
+  .podium-net{font-size:17px;font-weight:800;}
 </style>
 </head>
 <body>
@@ -244,11 +306,22 @@
       <div class="subtitle" data-i18n="subtitle">Lleva el control de buy-ins, ganancias y estadísticas de tu grupo.</div>
     </div>
     <div class="header-actions">
-      <select id="langSelect" class="lang-select" onchange="applyLanguage(this.value)">
-        <option value="es">Español</option>
-        <option value="en">English</option>
-        <option value="ru">Русский</option>
-      </select>
+      <div class="control-chip">
+        <label data-i18n="languageLabel">Idioma</label>
+        <select id="langSelect" class="lang-select" onchange="applyLanguage(this.value)">
+          <option value="es">🌐 Español</option>
+          <option value="en">🌐 English</option>
+          <option value="ru">🌐 Русский</option>
+        </select>
+      </div>
+      <div class="control-chip">
+        <label data-i18n="currencyLabel">Moneda</label>
+        <select id="currencySelect" class="lang-select" onchange="applyCurrency(this.value)">
+          <option value="USD">$ USD</option>
+          <option value="COP">$ COP</option>
+          <option value="RUB">₽ RUB</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -313,6 +386,7 @@
 
   <!-- STATS -->
   <div class="panel" id="tab-stats">
+    <div id="podiumContainer" class="podium-row"></div>
     <div id="statCards" class="stat-cards"></div>
     <table>
       <thead>
@@ -378,9 +452,43 @@
 
 <div class="toast" id="toast"></div>
 
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="modal-box">
+    <div class="modal-message" id="confirmMessage"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="confirmCancelBtn" onclick="resolveConfirm(false)"></button>
+      <button class="btn-danger-solid" id="confirmOkBtn" onclick="resolveConfirm(true)"></button>
+    </div>
+  </div>
+</div>
+
 <script>
 const STORAGE_KEY = 'pokerCashTrackerData';
 const LANG_KEY = 'pokerCashTrackerLang';
+const CURRENCY_KEY = 'pokerCashTrackerCurrency';
+
+/* ---------- currency ---------- */
+const CURRENCIES = {
+  USD: { symbol:'$', locale:'en-US', position:'prefix' },
+  COP: { symbol:'COP $', locale:'es-CO', position:'prefix' },
+  RUB: { symbol:'₽', locale:'ru-RU', position:'suffix' },
+};
+
+let currentCurrency = (localStorage.getItem(CURRENCY_KEY) && CURRENCIES[localStorage.getItem(CURRENCY_KEY)]) ? localStorage.getItem(CURRENCY_KEY) : 'USD';
+
+function applyCurrency(cur){
+  currentCurrency = CURRENCIES[cur] ? cur : 'USD';
+  localStorage.setItem(CURRENCY_KEY, currentCurrency);
+  const sel = document.getElementById('currencySelect');
+  if(sel) sel.value = currentCurrency;
+  document.querySelectorAll('#entriesContainer .players-entry').forEach(row=>{
+    const firstBuyin = row.querySelector('.buyin-amount');
+    if(firstBuyin) updateEntryNet(firstBuyin);
+  });
+  updateTableTotal();
+  renderHistorial();
+  renderStats();
+}
 
 /* ---------- i18n ---------- */
 const TRANSLATIONS = {
@@ -417,6 +525,10 @@ const TRANSLATIONS = {
     statCardAvgTable:'Promedio en mesa por partida',
     tableMoneyTitle:'Dinero en la mesa por partida',
     thDate:'Fecha', thPlayersCount:'Jugadores', thTableTotal:'Total en mesa',
+    languageLabel:'Idioma', currencyLabel:'Moneda',
+    cancelBtn:'Cancelar', confirmDeleteBtn:'Sí, eliminar',
+    confirmRemoveEntryRow:'¿Quitar a este jugador de la partida? Se perderán sus buy-ins y cash-out de esta partida.',
+    podiumTitle:'Podio de líderes',
   },
   en: {
     title:'🃏 Cash Game Tracker',
@@ -451,6 +563,10 @@ const TRANSLATIONS = {
     statCardAvgTable:'Avg money in play per session',
     tableMoneyTitle:'Money in play by session',
     thDate:'Date', thPlayersCount:'Players', thTableTotal:'Table total',
+    languageLabel:'Language', currencyLabel:'Currency',
+    cancelBtn:'Cancel', confirmDeleteBtn:'Yes, remove',
+    confirmRemoveEntryRow:'Remove this player from the session? Their buy-ins and cash-out for this session will be lost.',
+    podiumTitle:'Leaderboard',
   },
   ru: {
     title:'🃏 Учёт кэш-игр',
@@ -485,6 +601,10 @@ const TRANSLATIONS = {
     statCardAvgTable:'Средний оборот за игру',
     tableMoneyTitle:'Деньги в игре по партиям',
     thDate:'Дата', thPlayersCount:'Игроков', thTableTotal:'Итог за столом',
+    languageLabel:'Язык', currencyLabel:'Валюта',
+    cancelBtn:'Отмена', confirmDeleteBtn:'Да, удалить',
+    confirmRemoveEntryRow:'Убрать этого игрока из игры? Его бай-ины и кэш-аут в этой партии будут потеряны.',
+    podiumTitle:'Таблица лидеров',
   }
 };
 
@@ -556,14 +676,53 @@ function saveData(){
 }
 
 function fmtMoney(n){
+  const cur = CURRENCIES[currentCurrency] || CURRENCIES.USD;
   const sign = n < 0 ? '-' : '';
-  return sign + '$' + Math.abs(n).toLocaleString('es', {minimumFractionDigits:0, maximumFractionDigits:2});
+  const abs = Math.abs(n).toLocaleString(cur.locale, {minimumFractionDigits:0, maximumFractionDigits:2});
+  return cur.position === 'suffix' ? `${sign}${abs} ${cur.symbol}` : `${sign}${cur.symbol} ${abs}`;
 }
 
 function netClass(n){
   if(n > 0) return 'positive';
   if(n < 0) return 'negative';
   return 'zero';
+}
+
+/* ---------- avatars ---------- */
+
+function avatarColor(name){
+  let hash = 0;
+  for(let i=0;i<name.length;i++){ hash = name.charCodeAt(i) + ((hash<<5)-hash); }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 52%, 40%)`;
+}
+
+function initials(name){
+  return name.trim().split(/\s+/).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+}
+
+function avatarHtml(name){
+  return `<span class="avatar" style="background:${avatarColor(name)}">${escapeHtml(initials(name))}</span>`;
+}
+
+/* ---------- confirm modal ---------- */
+
+let confirmResolver = null;
+
+function showConfirm(message){
+  return new Promise(resolve=>{
+    confirmResolver = resolve;
+    document.getElementById('confirmMessage').textContent = message;
+    document.getElementById('confirmCancelBtn').textContent = t('cancelBtn');
+    document.getElementById('confirmOkBtn').textContent = t('confirmDeleteBtn');
+    document.getElementById('confirmOverlay').classList.add('show');
+  });
+}
+
+function resolveConfirm(result){
+  document.getElementById('confirmOverlay').classList.remove('show');
+  if(confirmResolver) confirmResolver(result);
+  confirmResolver = null;
 }
 
 function showToast(msg){
@@ -599,10 +758,10 @@ function addPlayer(){
   showToast(t('toastPlayerAdded'));
 }
 
-function deletePlayer(name){
+async function deletePlayer(name){
   const usedIn = data.sessions.some(s=>s.entries.some(e=>e.player===name));
   if(usedIn){
-    if(!confirm(t('confirmDeletePlayer', {name}))) return;
+    if(!(await showConfirm(t('confirmDeletePlayer', {name})))) return;
   }
   data.players = data.players.filter(p=>p!==name);
   saveData();
@@ -620,7 +779,7 @@ function renderPlayers(){
   tbody.innerHTML = data.players.map(name=>{
     const count = data.sessions.filter(s=>s.entries.some(e=>e.player===name)).length;
     return `<tr>
-      <td>${escapeHtml(name)}</td>
+      <td>${avatarHtml(name)}${escapeHtml(name)}</td>
       <td>${count}</td>
       <td style="text-align:right;"><button class="btn-danger" onclick="deletePlayer('${escapeAttr(name)}')">${t('deleteBtn')}</button></td>
     </tr>`;
@@ -656,10 +815,11 @@ function addEntryRow(playerName){
     <button class="remove-row-btn" onclick="removeEntryRow(this)" title="Quitar">✕</button>
   `;
   container.appendChild(row);
-  updateTableTotal();
+  updateEntryNet(row.querySelector('.buyin-amount'));
 }
 
-function removeEntryRow(btn){
+async function removeEntryRow(btn){
+  if(!(await showConfirm(t('confirmRemoveEntryRow')))) return;
   btn.closest('.players-entry').remove();
   updateTableTotal();
 }
@@ -810,7 +970,7 @@ function renderHistorial(){
       const buyIns = e.buyIns||[];
       const detail = buyIns.length > 1 ? `<div class="buyin-detail">${buyIns.map(v=>fmtMoney(v)).join(' + ')} (${buyIns.length} ${t('entriesWord')})</div>` : '';
       return `<tr>
-        <td>${escapeHtml(e.player)}</td>
+        <td>${avatarHtml(e.player)}${escapeHtml(e.player)}</td>
         <td>${fmtMoney(buyInTotal)}${detail}</td>
         <td>${fmtMoney(e.cashOut)}</td>
         <td class="${netClass(net)}">${fmtMoney(net)}</td>
@@ -833,8 +993,8 @@ function renderHistorial(){
   }).join('');
 }
 
-function deleteSession(id){
-  if(!confirm(t('confirmDeleteSession'))) return;
+async function deleteSession(id){
+  if(!(await showConfirm(t('confirmDeleteSession')))) return;
   data.sessions = data.sessions.filter(s=>s.id!==id);
   saveData();
   renderHistorial();
@@ -871,6 +1031,19 @@ function renderStats(){
   const totalMoved = data.sessions.reduce((a,s)=>a + s.entries.reduce((x,e)=>x+entryBuyInTotal(e),0), 0);
   const avgTable = totalSessions ? totalMoved/totalSessions : 0;
   let topPlayer = names.length ? names[0] : null;
+
+  const podiumNames = names.filter(n=>perPlayer[n].games>0).slice(0,3);
+  const podiumEl = document.getElementById('podiumContainer');
+  podiumEl.innerHTML = podiumNames.map((n,i)=>{
+    const st = perPlayer[n];
+    const medal = ['🥇','🥈','🥉'][i];
+    return `<div class="podium-card rank-${i+1}">
+      <div class="podium-medal">${medal}</div>
+      <div class="podium-name">${avatarHtml(n)}${escapeHtml(n)}</div>
+      <div class="podium-net ${netClass(st.net)}">${fmtMoney(st.net)}</div>
+    </div>`;
+  }).join('');
+
   const cards = document.getElementById('statCards');
   cards.innerHTML = `
     <div class="stat-card"><div class="label">${t('statCardGames')}</div><div class="value">${totalSessions}</div></div>
@@ -888,7 +1061,7 @@ function renderStats(){
     const winRate = st.games ? Math.round((st.wins/st.games)*100) : 0;
     const barPct = Math.min(100, Math.round((Math.abs(st.net)/maxAbsNet)*100));
     return `<tr>
-      <td>${escapeHtml(n)}</td>
+      <td>${avatarHtml(n)}${escapeHtml(n)}</td>
       <td>${st.games}</td>
       <td>${fmtMoney(st.buyIn)}</td>
       <td>${fmtMoney(st.cashOut)}</td>
@@ -951,12 +1124,12 @@ function importData(event){
   const file = event.target.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = function(e){
+  reader.onload = async function(e){
     try{
       const imported = JSON.parse(e.target.result);
       if(!imported.players || !imported.sessions) throw new Error('formato inválido');
       migrateData(imported);
-      if(confirm(t('confirmImport'))){
+      if(await showConfirm(t('confirmImport'))){
         data = imported;
         saveData();
         renderPlayers();
@@ -991,6 +1164,7 @@ function escapeAttr(str){
 /* ---------- INIT ---------- */
 
 document.getElementById('langSelect').value = currentLang;
+document.getElementById('currencySelect').value = currentCurrency;
 applyLanguage(currentLang);
 
 if('serviceWorker' in navigator){

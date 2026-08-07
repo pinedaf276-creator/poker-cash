@@ -1,6 +1,6 @@
 // Simple offline cache for Poker Cash Tracker.
 // Bump CACHE_NAME whenever index.html changes so the new version gets picked up.
-const CACHE_NAME = 'poker-cash-tracker-v1';
+const CACHE_NAME = 'poker-cash-tracker-v2';
 const ASSETS = [
   './index.html',
   './manifest.json',
